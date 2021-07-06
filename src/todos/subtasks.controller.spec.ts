@@ -13,10 +13,15 @@ import { Todo } from './entities/todo.entity';
 import { TodoStatus } from './entities/todo-status';
 import { TodosService } from './todos.service';
 import { TodoRepositoryFake } from './mocks/todos.repository.fake';
+import { SubtaskNotFoundException } from './exceptions/subtask.not-found.exception';
+import { Repository } from 'typeorm';
+import { TodoNotFoundException } from './exceptions/todo.not-found.exception';
 
 describe('SubtasksController', () => {
   let subtasksController: SubtasksController;
   let subtasksService: SubtasksService;
+  let subtasksRepository: Repository<Subtask>;
+  let todosRepository: Repository<Todo>;
 
   beforeEach(async () => {
     const moduleRef = await Test.createTestingModule({
@@ -37,6 +42,8 @@ describe('SubtasksController', () => {
 
     subtasksService = moduleRef.get<SubtasksService>(SubtasksService);
     subtasksController = moduleRef.get<SubtasksController>(SubtasksController);
+    subtasksRepository = moduleRef.get(getRepositoryToken(Subtask));
+    todosRepository = moduleRef.get(getRepositoryToken(Todo));
   });
 
   describe('creating a subtask', () => {
@@ -78,6 +85,33 @@ describe('SubtasksController', () => {
       expect(subtasksServiceCreateSpy).toBeCalledWith(createSubtaskDto);
       expect(result).toStrictEqual(subtask);
     });
+
+    // Negative tests
+
+    it('creates a subtask - todo not found', async () => {
+      // Create a valid subtask id
+      const todoId = faker.datatype.uuid();
+
+      // Mock the result of 'findOne'
+      // Mock the result of the findOne function
+      jest.spyOn(todosRepository, 'findOne').mockResolvedValue(null);
+
+      // Assert the exception
+      try {
+        // Create CreateSubtaskDto
+        const createSubtaskDto = new CreateSubtaskDto();
+        createSubtaskDto.title = faker.lorem.sentence();
+        createSubtaskDto.todoId = todoId;
+
+        // This should throw an exception
+        await subtasksController.create(createSubtaskDto);
+
+        // If not, make the test fail
+        expect(true).toBe(false);
+      } catch (e) {
+        expect(e).toBeInstanceOf(TodoNotFoundException);
+      }
+    });
   });
 
   describe('reading a subtask', () => {
@@ -113,6 +147,27 @@ describe('SubtasksController', () => {
       expect(subtasksServiceFindOneSpy).toHaveBeenCalledWith(subtaskId);
       expect(result).toStrictEqual(subtaskToRead);
     });
+
+    // Negative tests
+
+    it('reads a subtask - subtask not found', async () => {
+      // Create a valid subtask id
+      const subtaskId = faker.datatype.uuid();
+
+      // Mock the result of 'findOne'
+      jest.spyOn(subtasksRepository, 'findOne').mockResolvedValue(null);
+
+      // Assert the exception
+      try {
+        // This should throw an exception
+        await subtasksController.findOne(subtaskId);
+
+        // If not, make the test fail
+        expect(true).toBe(false);
+      } catch (e) {
+        expect(e).toBeInstanceOf(SubtaskNotFoundException);
+      }
+    });
   });
 
   describe('reading all subtasks', () => {
@@ -147,6 +202,22 @@ describe('SubtasksController', () => {
 
       expect(subtasksServiceFindAllSpy).toHaveBeenCalled();
       expect(result).toStrictEqual([subtaskToRead]);
+    });
+
+    // Negative tests
+
+    it('reads all subtasks - no subtasks', async () => {
+      // Mock the result of 'findAll'
+      const subtasksServiceFindAllSpy = jest
+        .spyOn(subtasksService, 'findAll')
+        .mockResolvedValue([]);
+
+      // Call the findAll function of the service
+      const result = await subtasksController.findAll();
+
+      expect(subtasksServiceFindAllSpy).toHaveBeenCalled();
+
+      expect(result).toStrictEqual([]);
     });
   });
 
@@ -197,6 +268,31 @@ describe('SubtasksController', () => {
       );
       expect(result).toStrictEqual(updatedSubtask);
     });
+
+    // Negative tests
+
+    it('updates a subtask - subtask not found', async () => {
+      // Create a valid subtask id
+      const subtaskId = faker.datatype.uuid();
+
+      // Mock the result of 'findOne'
+      jest.spyOn(subtasksRepository, 'findOne').mockResolvedValue(null);
+
+      // Assert the exception
+      try {
+        // Create UpdateSubtaskDto
+        const updateSubtaskDto = new UpdateSubtaskDto();
+        updateSubtaskDto.status = SubtaskStatus.COMPLETED;
+
+        // This should throw an exception
+        await subtasksController.update(subtaskId, updateSubtaskDto);
+
+        // If not, make the test fail
+        expect(true).toBe(false);
+      } catch (e) {
+        expect(e).toBeInstanceOf(SubtaskNotFoundException);
+      }
+    });
   });
 
   describe('deleting a subtask', () => {
@@ -231,6 +327,27 @@ describe('SubtasksController', () => {
 
       expect(subtasksServiceRemoveSpy).toHaveBeenCalledWith(subtaskId);
       expect(result).toStrictEqual(subtaskToDelete);
+    });
+
+    // Negative tests
+
+    it('deletes a subtask - subtask not found', async () => {
+      // Create a valid subtask id
+      const subtaskId = faker.datatype.uuid();
+
+      // Mock the result of 'findOne'
+      jest.spyOn(subtasksRepository, 'findOne').mockResolvedValue(null);
+
+      // Assert the exception
+      try {
+        // This should throw an exception
+        await subtasksController.remove(subtaskId);
+
+        // If not, make the test fail
+        expect(true).toBe(false);
+      } catch (e) {
+        expect(e).toBeInstanceOf(SubtaskNotFoundException);
+      }
     });
   });
 });
