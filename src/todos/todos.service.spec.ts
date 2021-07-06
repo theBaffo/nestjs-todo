@@ -10,6 +10,7 @@ import { TodoRepositoryFake } from './mocks/todos.repository.fake';
 import { TodosService } from './todos.service';
 import { UpdateTodoDto } from './dto/update-todo.dto';
 import { TodoStatus } from './entities/todo-status';
+import { TodoNotFoundException } from './exceptions/todo.not-found.exception';
 
 describe('TodosService', () => {
   let todosService: TodosService;
@@ -83,6 +84,27 @@ describe('TodosService', () => {
 
       expect(result).toStrictEqual(todoToRead);
     });
+
+    // Negative tests
+
+    it('reads a todo - todo not found', async () => {
+      // Create a valid todo id
+      const todoId = faker.datatype.uuid();
+
+      // Mock the result of 'findOne'
+      jest.spyOn(todosRepository, 'findOne').mockResolvedValue(null);
+
+      // Assert the exception
+      try {
+        // This should throw an exception
+        await todosService.findOne(todoId);
+
+        // If not, make the test fail
+        expect(true).toBe(false);
+      } catch (e) {
+        expect(e).toBeInstanceOf(TodoNotFoundException);
+      }
+    });
   });
 
   describe('reading all todos', () => {
@@ -108,6 +130,22 @@ describe('TodosService', () => {
       });
 
       expect(result).toStrictEqual([todoToRead]);
+    });
+
+    // Negative tests
+
+    it('reads all todos - no todos', async () => {
+      // Mock the result of 'findOne'
+      const todosRepositoryFindSpy = jest
+        .spyOn(todosRepository, 'find')
+        .mockResolvedValue([]);
+
+      // Call the findAll function of the service
+      const result = await todosService.findAll();
+
+      expect(todosRepositoryFindSpy).toHaveBeenCalled();
+
+      expect(result).toStrictEqual([]);
     });
   });
 
@@ -148,6 +186,31 @@ describe('TodosService', () => {
 
       expect(result).toStrictEqual(updatedTodo);
     });
+
+    // Negative tests
+
+    it('updates a todo - todo not found', async () => {
+      // Create a valid todo id
+      const todoId = faker.datatype.uuid();
+
+      // Mock the result of 'findOne'
+      jest.spyOn(todosRepository, 'findOne').mockResolvedValue(null);
+
+      // Assert the exception
+      try {
+        // Create UpdateTodoDto
+        const updateTodoDto = new UpdateTodoDto();
+        updateTodoDto.status = TodoStatus.COMPLETED;
+
+        // This should throw an exception
+        await todosService.update(todoId, updateTodoDto);
+
+        // If not, make the test fail
+        expect(true).toBe(false);
+      } catch (e) {
+        expect(e).toBeInstanceOf(TodoNotFoundException);
+      }
+    });
   });
 
   describe('deleting a todo', () => {
@@ -178,6 +241,27 @@ describe('TodosService', () => {
       expect(todosServiceRemoveSpy).toHaveBeenCalledWith(todoToDelete);
 
       expect(result).toStrictEqual(todoToDelete);
+    });
+
+    // Negative tests
+
+    it('deletes a todo - todo not found', async () => {
+      // Create a valid todo id
+      const todoId = faker.datatype.uuid();
+
+      // Mock the result of 'findOne'
+      jest.spyOn(todosRepository, 'findOne').mockResolvedValue(null);
+
+      // Assert the exception
+      try {
+        // This should throw an exception
+        await todosService.remove(todoId);
+
+        // If not, make the test fail
+        expect(true).toBe(false);
+      } catch (e) {
+        expect(e).toBeInstanceOf(TodoNotFoundException);
+      }
     });
   });
 });
